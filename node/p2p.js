@@ -65,7 +65,8 @@ export class P2PNode {
                 case P2PNode.MSG.WELCOME:
                     console.log(`Welcome from ${msg.from}`);
                     break;
-                
+
+                // After recive PING, Node is sending back PONG
                 case P2PNode.MSG.PING:
                     console.log(`Ping from ${msg.from}, sending PONG`);
                     this.send(ws, { type: P2PNode.MSG.PONG, from: this.port});
