@@ -7,16 +7,26 @@ const ec = new EC('secp256k1');
 export class Wallet {
     constructor() {
         // ECDSA - privateKey * G = publicKey
-        this.keyPair = ec.genKeyPair();
-        this.publicKey = this.keyPair.getPublic('hex');
-        this.privateKey = this.keyPair.getPrivate('hex');
+        this._keyPair = ec.genKeyPair();
+        this.publicKey = this._keyPair.getPublic('hex');
+        this._privateKey = this._keyPair.getPrivate('hex');
     }
-    
+
+    // only to debug
+    getPrivateKey() {
+        return this._privateKey;
+    }
+    // only to debug
+    getKeyPair() {
+        return this._keyPair;
+    }
+
+
     signMessage(message) {
         // Calculate hash for message
         const hash = Wallet.hashMessage(message);
         // Sign 
-        const signature = this.keyPair.sign(hash);
+        const signature = this._keyPair.sign(hash);
         return signature.toDER('hex');
     }
 

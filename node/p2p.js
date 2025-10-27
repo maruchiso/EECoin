@@ -1,4 +1,5 @@
 import WebSocket, { WebSocketServer } from 'ws';
+import { Wallet } from '../wallet/wallet.js';
 
 export class P2PNode {
     constructor(port, peers = []) {
