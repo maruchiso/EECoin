@@ -22,6 +22,7 @@ export function encryptPrivateKey(privateKeyHex, password) {
 }
 
 export function decryptPrivateKey(keystore, password) {
+  try {
   const salt = Buffer.from(keystore.salt, 'hex');
   const iv = Buffer.from(keystore.iv, 'hex');
   const tag = Buffer.from(keystore.tag, 'hex');
@@ -33,11 +34,16 @@ export function decryptPrivateKey(keystore, password) {
 
   const decrypted = Buffer.concat([decipher.update(data), decipher.final()]);
   return decrypted.toString('hex');
+  } catch (err) {
+    console.warn('Invalid password');
+    return null;
+  }
 }
 
 export function saveKeystore(filePath, keystoreObj) {
   fs.writeFileSync(filePath, JSON.stringify(keystoreObj, null, 2));
 }
+
 export function loadKeystore(filePath) {
   return JSON.parse(fs.readFileSync(filePath, 'utf8'));
 }

@@ -11,9 +11,18 @@ wallet.saveToKeystore(password, './wallet/keystore.json');
 wallet.lockWallet();
 console.log('Locked wallet: ', wallet.getInfo());
 
-// get from file
+// get from file (correct password)
 const wallet2 = Wallet.createWalletFromKeystore(password, './wallet/keystore.json');
 console.log('Wallet from file', wallet2.getInfo());
+
+// get from file (invalid password)
+const invalidPassword = 'password';
+const wallet3 = Wallet.createWalletFromKeystore(invalidPassword, './wallet/keystore.json');
+if (wallet3) {
+    console.log('Wallet from file', wallet3.getInfo());
+} else {
+    console.log('Cannot get wallet from file (invalid password)');
+}
 
 // Sign and verify
 const message = "Test message";

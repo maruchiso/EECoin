@@ -22,7 +22,11 @@ export class Wallet {
     static createWalletFromKeystore(password, filePath, { network = 'testnet' } = {}) {
         const keystore = loadKeystore(filePath);
         const privateKey = decryptPrivateKey(keystore, password);
-
+        if (!privateKey) {
+            console.warn('Cannot decrypt provate key');
+            return null;
+        }
+        else {
         const wallet = Object.create(Wallet.prototype);
         wallet.network = network;
         wallet._privateKey = privateKey;
@@ -32,6 +36,7 @@ export class Wallet {
         wallet.wif = privateKeyToWIF(privateKey, wallet.network);
         wallet._locekd = false;
         return wallet;
+        }
     }
 
     // Save private key to cipher keysore
