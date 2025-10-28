@@ -20,7 +20,7 @@ console.log("Should be true", verifyWallet1)
 
 // Test verify by incorrect public key (from wallet2)
 var verifyWallet2 = Wallet.verifySignature(message, signature, wallet2.publicKey)
-console.log("Should be true", verifyWallet2)
+console.log("Should be false", verifyWallet2)
 
 // Test compress Public key from Key Pair
 const keyPair = wallet1.getKeyPair();
@@ -28,8 +28,7 @@ const compressedPublicKey = compressedPublicKeyFromKeyPair(keyPair);
 console.log("Compressed public key for wallet1", compressedPublicKey)
 
 // Test adress from Public key for mainnet
-const publicKey = wallet1.publicKey;
-const address = publicKeyToAddress(publicKey, 'mainnet');
+const address = publicKeyToAddress(compressedPublicKey, 'mainnet');
 console.log("Address for wallet1 from public key: ", address);
 
 // Test WIF for mainnet
