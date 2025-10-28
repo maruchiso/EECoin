@@ -1,7 +1,7 @@
 import WebSocket, { WebSocketServer } from 'ws';
 import { Wallet } from '../wallet/wallet.js';
 
-export class P2PNode {
+export class Node {
     constructor(port, peers = []) {
         this.port = port;
         this.peers = peers;
@@ -28,7 +28,7 @@ export class P2PNode {
             this.sockets = this.sockets.filter(s => s != ws);
             console.log(`Disconnect peer from port: ${this.port}`);
         });
-        this.send(ws, { type: P2PNode.MSG.HELLO, from: this.port });
+        this.send(ws, { type: Node.MSG.HELLO, from: this.port });
     }
 
     connectToPeer(address) {
@@ -59,21 +59,21 @@ export class P2PNode {
 
             switch (msg.type) {
                 // After recive HELLO, Node is sending back WELCOME
-                case P2PNode.MSG.HELLO:
-                    this.send(ws, { type: P2PNode.MSG.WELCOME, from: this.port });
+                case Node.MSG.HELLO:
+                    this.send(ws, { type: Node.MSG.WELCOME, from: this.port });
                     break;
                 
-                case P2PNode.MSG.WELCOME:
+                case Node.MSG.WELCOME:
                     console.log(`Welcome from ${msg.from}`);
                     break;
 
                 // After recive PING, Node is sending back PONG
-                case P2PNode.MSG.PING:
+                case Node.MSG.PING:
                     console.log(`Ping from ${msg.from}, sending PONG`);
-                    this.send(ws, { type: P2PNode.MSG.PONG, from: this.port});
+                    this.send(ws, { type: Node.MSG.PONG, from: this.port});
                     break;
                 
-                case P2PNode.MSG.PONG:
+                case Node.MSG.PONG:
                     console.log(`PONG from ${msg.from}`);
                     break;
                 
@@ -102,4 +102,4 @@ export class P2PNode {
 
 }
 
-export default P2PNode;
+export default Node;
