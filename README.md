@@ -1,8 +1,8 @@
 # EECoin
 1. Sieć peer-to-peer i bezpieczny portfel:
-   -  Tworzenie cyfrowych tożsamości
-   -  Bezpieczne przechowywanie kluczy w cyfrowym portfelu
-   -  Uruchomienie i rejestracja węzła sieci (nawiązywanie komunikacji z innymi węzłami)
+   -  Tworzenie cyfrowych tożsamości (done)
+   -  Bezpieczne przechowywanie kluczy w cyfrowym portfelu (done)
+   -  Uruchomienie i rejestracja węzła sieci (nawiązywanie komunikacji z innymi węzłami) (done)
 2. Prosty łańcuch bloków:
    - Tylko 1 górnik
    - Tworzenie bloków

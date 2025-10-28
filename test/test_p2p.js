@@ -1,4 +1,4 @@
-import { P2PNode } from './node/p2p.js'
+import { P2PNode } from '../node/p2p.js'
 
 const nodeA = new P2PNode(6001, ['ws://localhost:6002']);
 const nodeB = new P2PNode(6002, ['ws://localhost:6001']);
