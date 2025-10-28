@@ -90,7 +90,8 @@ export class Wallet {
         const hash = Wallet.hashMessage(message);
         return key.verify(hash, signatureHex);
     }
-
+    
+    // only to debug
     getInfo() {
         return {
             network: this.network,
