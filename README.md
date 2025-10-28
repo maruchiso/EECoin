@@ -3,6 +3,7 @@
    -  Tworzenie cyfrowych tożsamości (done)
    -  Bezpieczne przechowywanie kluczy w cyfrowym portfelu (done)
    -  Uruchomienie i rejestracja węzła sieci (nawiązywanie komunikacji z innymi węzłami) (done)
+5/10 p (spóźnienie)
 2. Prosty łańcuch bloków:
    - Tylko 1 górnik
    - Tworzenie bloków
@@ -18,3 +19,5 @@
    - Wielu górników
    - Obsługa forków oraz orphan block
    - Eksperyment: jak sieć zachowa się, gdy złośliwy węzeł będzie wymuszać tworzenie forków?
+
+(rozwazyć dodanie podkont (1 konto -> wiele podkont))
