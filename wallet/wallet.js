@@ -23,7 +23,7 @@ export class Wallet {
         const keystore = loadKeystore(filePath);
         const privateKey = decryptPrivateKey(keystore, password);
         if (!privateKey) {
-            console.warn('Cannot decrypt provate key');
+            console.warn('Cannot decrypt private key');
             return null;
         }
         else {
@@ -39,7 +39,7 @@ export class Wallet {
         }
     }
 
-    // Save private key to cipher keysore
+    // Save private key to cypher keystore
     saveToKeystore(password, filePath = './wallet/keystore.json') {
         const keystore = encryptPrivateKey(this._privateKey, password);
         saveKeystore(filePath, keystore);
@@ -57,12 +57,18 @@ export class Wallet {
     unlockFromKeystore(password, filePath='./wallet/keystore.json') {
         const keystore = loadKeystore(filePath);
         const privateKey = decryptPrivateKey(keystore, password);
+        if (!privateKey) {
+            console.warn('Cannot decrypt private key');
+            return null;
+        }
+        else {
         this._keyPair = ec.keyFromPrivate(privateKey);
         this._privateKey = privateKey;
         this.publicKey = compressedPublicKeyFromKeyPair(this._keyPair);
         this.address = publicKeyToAddress(this.publicKey, this.network);
         this.wif = privateKeyToWIF(privateKey, this.network);
         this._locked = false;
+        }
     }
 
     // only to debug
