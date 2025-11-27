@@ -55,4 +55,38 @@ export class Block {
     hash() {
         return sha256(sha256(this.serialize())).reverse().toString("hex");
     }
+
+    // PoW
+    // Górnicy po sprawdzeniu wszystkich możliwości z pola nonce
+    // skrót każdego nagłówka bloku interpretowany jako liczba ma mieć wartość niższą od wskazanego celu (target - 256 bits, target = coefficeint * 256 ^ (exponent - 3))
+    bitsToTarget() {
+        // bits convert to 4 bytes LE
+        const buf = uInt32LE(this.bits);
+        // last byte -> exponent
+        const exponent = buf[3];
+
+        // 3 first bytes -> coefficient
+        const coefficeint = buf.readUIntLE(0, 3);
+
+        // coefficeint * 256 ^ (exponent - 3)
+        return BigInt(coefficeint) * (1n << (8n * BigInt(exponent - 3)))
+    }
+
+    checkPoW() {
+        const target = this.bitsToTarget();
+        const hashInt = BigInt("0x" + this.hash());
+        return hashInt < target;
+    }
+
+    // Kopanie polega na na przeszukiwaniu nonce w celu znalezenia hasha, który jest mniejszy od celu
+    mine() {
+        while (true) {
+            if (this.checkPoW()) {
+                return this;
+            }
+            this.nonce++;
+
+        }
+    }
+
 }
