@@ -90,7 +90,7 @@ export class Node {
                     console.log(`PONG from ${msg.from}`);
                     break;
                 
-                // type: BLOCK, block: hex
+                // type: BLOCK, block: serialized block (hex)
                 case Node.MSG.BLOCK:
                     console.log(`Received new Block`);
                     const buf = Buffer.from(msg.block, "hex");

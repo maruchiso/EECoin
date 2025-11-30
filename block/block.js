@@ -8,8 +8,8 @@ export class Block {
         prevBlock, // hash of previous block // 32 bytes big-endian
         merkleRoot, // (Korzeń drzewa skrótów) encodes all transactions to hash// 32 bytes big-endian
         timestamp = Math.floor(Date.now() / 1000), // Unix timestamp // 4 bytes little-endian
-        bits, // place for proof of work // 4 bytes
-        nonce // number that is changed by miners when minning (generate proof of work) // 4 bytes
+        bits, // place for proof of work // 4 bytes little-endian
+        nonce // number that is changed by miners when minning (generate proof of work) // 4 bytes little-endian
     }) {
         this.version = version;
         this.prevBlock = prevBlock;
@@ -69,7 +69,7 @@ export class Block {
         const coefficeint = buf.readUIntLE(0, 3);
 
         // coefficeint * 256 ^ (exponent - 3)
-        return BigInt(coefficeint) * (1n << (8n * BigInt(exponent - 3)))
+        return BigInt(coefficeint) * (256n ** BigInt(exponent - 3));
     }
 
     checkPoW() {
