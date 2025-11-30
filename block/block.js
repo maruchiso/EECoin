@@ -85,8 +85,6 @@ export class Block {
                 return this;
             }
             this.nonce++;
-
         }
     }
-
 }
