@@ -6,16 +6,20 @@ async function test() {
     const chainA = new Blockchain();
     const chainB = new Blockchain();
     const chainC = new Blockchain();
+    const chainD = new Blockchain();
 
-    const nodeA = new Node(6001, ["ws://localhost:6002", "ws://localhost:6003"], chainA);
+    const nodeA = new Node(6001, ["ws://localhost:6002", "ws://localhost:6003", "ws://localhost:6004"], chainA);
     const nodeB = new Node(6002, ["ws://localhost:6001", "ws://localhost:6003"], chainB);
     const nodeC = new Node(6003, ["ws://localhost:6001", "ws://localhost:6002"], chainC);
+    const nodeD = new Node(6004, ["ws://localhost:6001"], chainD);
 
     await nodeA.init();
     await new Promise(r => setTimeout(r, 300));
     await nodeB.init();
     await new Promise(r => setTimeout(r, 300));
     await nodeC.init();
+    await new Promise(r => setTimeout(r, 500));
+    await nodeD.init();
     await new Promise(r => setTimeout(r, 500));
 
     console.log("nodeA is mining a new block");
@@ -30,6 +34,7 @@ async function test() {
     console.log("nodeA lenght: ", chainA.chain.length);
     console.log("nodeB lenght: ", chainB.chain.length);
     console.log("nodeC lenght: ", chainC.chain.length);
+    console.log("nodeD lenght: ", chainD.chain.length);
 }
 
 test();
