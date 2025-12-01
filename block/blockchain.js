@@ -13,7 +13,7 @@ export class Blockchain {
             prevBlock: "00".repeat(32),
             merkleRoot: "00".repeat(32),
             timestamp: 1700000000,
-            bits: this.bits,
+            bits: this.bits, // na sztywno ustawić
             nonce: 0,
         })
 
