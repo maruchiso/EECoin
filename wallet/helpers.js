@@ -30,7 +30,7 @@ function encodeBase58(buf) {
     return '1'.repeat(count) + encoded;
 }
 
-function sha256(buf) {
+export function sha256(buf) {
   return crypto.createHash('sha256').update(buf).digest();
 }
 

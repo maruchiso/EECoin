@@ -1,11 +1,13 @@
 import WebSocket, { WebSocketServer } from 'ws';
 import { Wallet } from '../wallet/wallet.js';
+import { Block } from '../block/block.js';
 
 export class Node {
-    constructor(port, peers = []) {
+    constructor(port, peers = [], blockchain) {
         this.port = port;
         this.peers = peers;
         this.sockets = [];
+        this.blockchain = blockchain;
     }
 
     static MSG = {
@@ -13,6 +15,7 @@ export class Node {
         WELCOME: "WELCOME",
         PING: "PING",
         PONG: "PONG",
+        BLOCK: "BLOCK",
     };
 
     createServer() {
@@ -52,6 +55,16 @@ export class Node {
         }
     }
 
+    broadcastBlock(block) {
+        const serializedBlock = block.serialize().toString("hex");
+        const msg = {
+            type: Node.MSG.BLOCK,
+            block: serializedBlock
+        };
+        this.broadcast(msg);
+        console.log("Broadcast Block to peers");
+    }
+
     handleMessage(ws, data) {
         try {
             const msg = JSON.parse(data);
@@ -77,6 +90,20 @@ export class Node {
                     console.log(`PONG from ${msg.from}`);
                     break;
                 
+                // type: BLOCK, block: serialized block (hex)
+                case Node.MSG.BLOCK:
+                    console.log(`Received new Block`);
+                    const buf = Buffer.from(msg.block, "hex");
+                    const block = Block.parse(buf);
+                    if (this.blockchain.addBlock(block)) {
+                        console.log("Block is accepted!");
+                        this.broadcast(msg);
+                    }
+                    else {
+                        console.log("Block is not accepted!")
+                    }
+                    break;
+
                 default:
                     console.warn(`Unknown message type: ${msg.type}`);
             }
