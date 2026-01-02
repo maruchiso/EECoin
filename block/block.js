@@ -9,7 +9,9 @@ export class Block {
         merkleRoot, // (Korzeń drzewa skrótów) encodes all transactions to hash// 32 bytes big-endian
         timestamp = Math.floor(Date.now() / 1000), // Unix timestamp // 4 bytes little-endian
         bits, // place for proof of work (difficulty) // 4 bytes little-endian
-        nonce // number that is changed by miners when minning (generate proof of work) // 4 bytes little-endian
+        nonce, // number that is changed by miners when minning (generate proof of work) // 4 bytes little-endian
+        // dodajemy transactions
+        transactions = [],
     }) {
         this.version = version;
         this.prevBlock = prevBlock;
@@ -17,6 +19,7 @@ export class Block {
         this.timestamp = timestamp;
         this.bits = bits;
         this.nonce = nonce;
+        this.transactions = transactions;
     }
 
     // 4 + 32 + 32 + 4 + 4 + 4 = 80 bytes
