@@ -82,6 +82,84 @@ export class Transaction {
         return Buffer.concat(parts);
     }
 
+    static parse(buffer) {
+        let offset = 0;
+
+        // version (4B LE)
+        const version = buffer.readUInt32LE(offset);
+        offset += 4;
+
+        // number of inputs (1B)
+        const inputCount = buffer.readUInt8(offset);
+        offset += 1;
+
+        const inputs = [];
+        for (let i = 0; i < inputCount; i++) {
+
+            // prevTx (32B LE -> hex BE)
+            const prevTx = buffer.slice(offset, offset + 32).reverse().toString("hex");
+            offset += 32;
+
+            // prevIndex (4B LE)
+            const prevIndex = buffer.readUInt32LE(offset);
+            offset += 4;
+
+            // signature
+            const sigLen = buffer.readUInt8(offset);
+            offset += 1;
+
+            let signature = null;
+            if (sigLen > 0) {
+                signature = buffer.slice(offset, offset + sigLen).toString("hex");
+                offset += sigLen;
+            }
+
+            // pubKey
+            const pubLen = buffer.readUInt8(offset);
+            offset += 1;
+
+            let pubKey = null;
+            if (pubLen > 0) {
+                pubKey = buffer.slice(offset, offset + pubLen).toString("hex");
+                offset += pubLen;
+            }
+
+            inputs.push(new TxIn(prevTx, prevIndex, signature, pubKey));
+        }
+
+        // number of outputs (1B)
+        const outputCount = buffer.readUInt8(offset);
+        offset += 1;
+
+        const outputs = [];
+        for (let i = 0; i < outputCount; i++) {
+
+            // amount (8B LE)
+            const amount = Number(buffer.readBigUInt64LE(offset));
+            offset += 8;
+
+            // address
+            const addrLen = buffer.readUInt8(offset);
+            offset += 1;
+
+            const address = buffer.slice(offset, offset + addrLen).toString("utf8");
+            offset += addrLen;
+
+            outputs.push(new TxOut(amount, address));
+        }
+
+        // locktime (4B LE)
+        const locktime = buffer.readUInt32LE(offset);
+        offset += 4;
+
+        return new Transaction({
+            version,
+            inputs,
+            outputs,
+            locktime,
+        });
+    }
+
     hash() {
         return sha256(sha256(this.serialize()));
     }

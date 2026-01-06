@@ -1,6 +1,7 @@
 import WebSocket, { WebSocketServer } from 'ws';
 import { Wallet } from '../wallet/wallet.js';
 import { Block } from '../block/block.js';
+import { Transaction } from '../transaction/transaction.js';
 
 export class Node {
     constructor(port, peers = [], blockchain) {
@@ -8,6 +9,7 @@ export class Node {
         this.peers = peers;
         this.sockets = [];
         this.blockchain = blockchain;
+        this.mempool = [];
     }
 
     static MSG = {
@@ -16,6 +18,7 @@ export class Node {
         PING: "PING",
         PONG: "PONG",
         BLOCK: "BLOCK",
+        TX: "TX",
     };
 
     createServer() {
@@ -65,6 +68,15 @@ export class Node {
         console.log("Broadcast Block to peers");
     }
 
+    broadcastTx(tx) {
+        const msg = {
+            type: Node.MSG.TX,
+            tx: tx.serialize().toString(),
+        };
+        this.broadcast(msg);
+        console.log("Broadcast transaction to peers")
+    }
+
     handleMessage(ws, data) {
         try {
             const msg = JSON.parse(data);
@@ -97,13 +109,39 @@ export class Node {
                     const block = Block.parse(buf);
                     if (this.blockchain.addBlock(block)) {
                         console.log("Block is accepted!");
-                        this.broadcast(msg);
+                        // delete transactions from mempool
+                        const ids = new Set(block.transactions.map((t) => t.id()));
+                        this.mempool = this.mempool.filter((t) => !ids.has(t.id()));
+                        console.log("Mempool cleaned")
+                        this.broadcastNotToSender(msg);
                     }
                     else {
                         console.log("Block is not accepted!")
                     }
                     break;
+                               
+                case Node.MSG.TX: {
+                    console.log("Received tranaction");
+                    // parse tx
+                    const buf = Buffer.from(msg.tx, "hex");
+                    const tx = Transaction.parse(buf);
+                    const ok = this.blockchain.validateTransaction(tx);
+                    if (!ok) {
+                        console.log("Transaction rejected");
+                        break;
+                    }
 
+                    //Handle duplication
+                    const id = tx.id();
+                    const already = this.mempool.find((t) => t.id() === id);
+                    if (already) break;
+
+                    // Add to mempool
+                    this.mempool.push(tx);
+                    console.log("Transaction accepted into mempool")
+                    this.broadcastNotToSender(ws, msg);
+                    break;
+                }
                 default:
                     console.warn(`Unknown message type: ${msg.type}`);
             }
@@ -118,6 +156,29 @@ export class Node {
 
     broadcast(msg) {
         this.sockets.forEach((ws) => this.send(ws, msg));
+    }
+
+    broadcastNotToSender(notThisWs, msg) {
+        this.sockets.forEach((s) => {
+            if (s !== notThisWs) this.send(s, msg);
+        });
+    }
+
+    minerFromMempool(minerAddress) {
+        if (this.mempool.length === 0) {
+            console.log("Mempool empty");
+            return null;
+        }
+        const txs = this.mempool;
+        const block = this.blockchain.mineNextBlock(minerAddress, txs);
+        if (block) {
+            const includedIds = new Set(block.transactions.map((t) => t.id()));
+            this.mempool = this.mempool.filter((t) => !includedIds.has(t.id()));
+            this.broadcastBlock(block);
+            console.log("Mined block and broadcasted. mempool size:", this.mempool.length);
+            return block;
+        }
+        return null;
     }
 
     // Use this method to init Node
