@@ -18,8 +18,6 @@ logBalances(chain, [miner, alice, bob]);
 UTXO:
 - coinbaseTx:0 -> miner (50)
 */
-
-
 // Miner -> Alice (30)
 
 

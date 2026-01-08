@@ -52,7 +52,7 @@ export class Block {
         offset += 4;
         
         const nonce = buffer.readUInt32LE(offset);
-        return new Block({ version, prevBlock, merkleRoot, timestamp, bits, nonce });
+        return new Block({ version, prevBlock, merkleRoot, timestamp, bits, nonce, transactions: [] });
     }
 
     hash() {

@@ -110,4 +110,8 @@ export class Wallet {
             privateKey: this.getPrivateKey()
         }
     }
+
+    isUnlocked() {
+        return this._privateKey !== null;
+    }
 }
