@@ -9,11 +9,11 @@ export class Node {
         this.peers = peers;
         this.sockets = [];
         this.blockchain = blockchain;
-        this.mempool = []; //lokalna lista transakcji (czekające transakcje)
+        this.wallet = wallet;
+        this.mempool = []; // czekające tx
 
         this.mining = false;
         this.currentMiningBlock = null;
-        this.wallet = wallet;
     }
 
     static MSG = {
@@ -172,30 +172,12 @@ export class Node {
         });
     }
 
-    minerFromMempool(minerAddress) {
-        if (this.mempool.length === 0) {
-            console.log("Mempool empty");
-            return null;
-        }
-        const txs = this.mempool;
-        const block = this.blockchain.mineNextBlock(minerAddress, txs);
-        if (block) {
-            const includedIds = new Set(block.transactions.map((t) => t.id()));
-            this.mempool = this.mempool.filter((t) => !includedIds.has(t.id()));
-            this.broadcastBlock(block);
-            console.log("Mined block and broadcasted. mempool size:", this.mempool.length);
-            return block;
-        }
-        return null;
-    }
-
     // Use this method to init Node
     async init() {
         this.createServer();
         await this.connectToPeers();
         console.log(`Node on port: ${this.port} is ready`);
     }
-
 
     startMining(minerAddress) {
         if (!this.wallet.isUnlocked()) throw new Error("Wallet locked, cannot mine");

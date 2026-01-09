@@ -2,13 +2,10 @@ import { Blockchain } from "../../block/blockchain.js";
 import { Wallet } from "../../wallet/wallet.js";
 
 async function test() {
-    console.log("=== ORPHAN BLOCK TEST ===");
-
     const miner = new Wallet();
 
     // uczciwy górnik
     const chainA = new Blockchain();
-
     // węzeł, który dostanie bloki w złej kolejności
     const chainB = new Blockchain();
 
@@ -21,7 +18,7 @@ async function test() {
     chainA.addBlock(child);
     console.log("Chain A height:", chainA.getHeight()); // 2
 
-    // Chain B dostaje NAJPIERW childa (bez parenta)
+    // Chain B dostaje najpierw childa (bez parenta)
     console.log("Adding orphan block (child first)...");
     const ok1 = chainB.addBlock(child);
 

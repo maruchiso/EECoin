@@ -24,17 +24,17 @@ async function test() {
   nodeA.startMining(walletA.address);
   nodeB.startMining(walletB.address);
 
-  await sleep(6000);
+  await sleep(3000);
   nodeA.stopMining();
   nodeB.stopMining();
-
+  console.log("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
   // wznawiamy kopanie dla node A
   nodeA.startMining(walletA.address);
-  await sleep(3000);
+  await sleep(4000);
   nodeA.stopMining();
 
   // czas na propagację i reorg
-  await sleep(2000);
+  await sleep(4000);
 
   console.log("Heights:", chainA.getHeight(), chainB.getHeight());
   console.log("Tips:", chainA.tip, chainB.tip);

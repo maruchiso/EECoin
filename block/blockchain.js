@@ -8,10 +8,10 @@ export class Blockchain {
     constructor({ bits = 0x1effffff, blockReward = 3 } = {}) {
         this.bits = bits;
         // this.chain = [];
-        this.blocksByHash = new Map();
-        this.heightByHash = new Map();
-        this.tip = null;    // hash the best block
-        this.orphans = new Map();
+        this.blocksByHash = new Map();  // graf bloków
+        this.heightByHash = new Map();  // każdy blok zna swoją wyokość
+        this.tip = null;    // hash czubka
+        this.orphans = new Map();   // przechowuje bloki które przyszły za wcześnie
         this.createFirstBlock();
         this.blockReward = blockReward;
     }
@@ -170,14 +170,14 @@ export class Blockchain {
                 console.error("First transaction is not coinbase")
                 return false;
             }
-
+            // sprawdzenie wiele coinbasów
             for (let i = 1; i < block.transactions.length; i++) {
                 if (block.transactions[i].inputs.some(isCoinbaseInput)) {
                     console.error("Multiple coinbase transactions detected");
                     return false;
                 }
             }
-
+            // sprawdzenie rewarda
             let reward = 0;
             for (const out of coinbase.outputs) {
                 if (out.amount <= 0) {
@@ -210,7 +210,7 @@ export class Blockchain {
         this.blocksByHash.set(hash, block);
         this.heightByHash.set(hash, height);
 
-        // the best tip = the longest chain
+        // the best tip = the longest chain 
         if (height > this.heightByHash.get(this.tip)) {
             this.tip = hash;
             console.log("New tip selected (hash: ", hash, ", height: ", height, ")");
@@ -253,7 +253,7 @@ export class Blockchain {
 
         return newBlock;
     }
-
+    
     createCandidateBlock(minerAddress, mempool = []) {
         const last = this.getTipBlock();
         const coinbase = createCoinbaseTx(minerAddress, this.blockReward);

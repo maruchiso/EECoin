@@ -19,7 +19,6 @@ async function test() {
     new Wallet()
     ];
 
-
     // Node 0 = malicious (kopie prawie cały czas)
     // Node 1,2 = ok
 
@@ -61,3 +60,5 @@ async function test() {
 }
 
 test();
+// Node który ma przewagę obliczeniową może narzucać swoją wersje łańcucha
+// ale wyłącznie w ramach PoW
