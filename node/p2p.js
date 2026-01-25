@@ -1,13 +1,19 @@
 import WebSocket, { WebSocketServer } from 'ws';
 import { Wallet } from '../wallet/wallet.js';
 import { Block } from '../block/block.js';
+import { Transaction } from '../transaction/transaction.js';
 
 export class Node {
-    constructor(port, peers = [], blockchain) {
+    constructor(port, peers = [], blockchain, wallet = null) {
         this.port = port;
         this.peers = peers;
         this.sockets = [];
         this.blockchain = blockchain;
+        this.wallet = wallet;
+        this.mempool = []; // czekające tx
+
+        this.mining = false;
+        this.currentMiningBlock = null;
     }
 
     static MSG = {
@@ -16,6 +22,7 @@ export class Node {
         PING: "PING",
         PONG: "PONG",
         BLOCK: "BLOCK",
+        TX: "TX",
     };
 
     createServer() {
@@ -65,6 +72,15 @@ export class Node {
         console.log("Broadcast Block to peers");
     }
 
+    broadcastTx(tx) {
+        const msg = {
+            type: Node.MSG.TX,
+            tx: tx.serialize().toString("hex"),
+        };
+        this.broadcast(msg);
+        console.log("Broadcast transaction to peers")
+    }
+
     handleMessage(ws, data) {
         try {
             const msg = JSON.parse(data);
@@ -97,13 +113,43 @@ export class Node {
                     const block = Block.parse(buf);
                     if (this.blockchain.addBlock(block)) {
                         console.log("Block is accepted!");
-                        this.broadcast(msg);
+                        // delete transactions from mempool
+                        const ids = new Set(block.transactions.map((t) => t.id()));
+                        this.mempool = this.mempool.filter((t) => !ids.has(t.id()));
+                        console.log("Mempool cleaned")
+                        this.broadcastNotToSender(ws, msg);
+                    
+                        console.log("New block - stop mining and restart");
+                        this.stopMining();
+                        this.startMining(this.wallet.address)
                     }
                     else {
                         console.log("Block is not accepted!")
                     }
                     break;
+                               
+                case Node.MSG.TX: {
+                    console.log("Received tranaction");
+                    // parse tx
+                    const buf = Buffer.from(msg.tx, "hex");
+                    const tx = Transaction.parse(buf);
+                    const ok = this.blockchain.validateTransaction(tx);
+                    if (!ok) {
+                        console.log("Transaction rejected");
+                        break;
+                    }
 
+                    //Handle duplication
+                    const id = tx.id();
+                    const already = this.mempool.find((t) => t.id() === id);
+                    if (already) break;
+
+                    // Add to mempool
+                    this.mempool.push(tx);
+                    console.log("Transaction accepted into mempool")
+                    this.broadcastNotToSender(ws, msg);
+                    break;
+                }
                 default:
                     console.warn(`Unknown message type: ${msg.type}`);
             }
@@ -120,6 +166,12 @@ export class Node {
         this.sockets.forEach((ws) => this.send(ws, msg));
     }
 
+    broadcastNotToSender(notThisWs, msg) {
+        this.sockets.forEach((s) => {
+            if (s !== notThisWs) this.send(s, msg);
+        });
+    }
+
     // Use this method to init Node
     async init() {
         this.createServer();
@@ -127,6 +179,42 @@ export class Node {
         console.log(`Node on port: ${this.port} is ready`);
     }
 
+    startMining(minerAddress) {
+        if (!this.wallet.isUnlocked()) throw new Error("Wallet locked, cannot mine");
+        if (this.mining) return;
+        console.log("Mining started...");
+        this.mining = true;
+        const mineStep = () => {
+            if (!this.mining) return;
+            const tip = this.blockchain.tip;
+            const lastBlock = this.blockchain.blocksByHash.get(tip);
+
+            if (!this.currentMiningBlock || this.currentMiningBlock.prevBlock !== lastBlock.hash()) {
+                this.currentMiningBlock = this.blockchain.createCandidateBlock(minerAddress);
+            }
+
+            for (let i = 0; i < 5000; i++) {
+                this.currentMiningBlock.nonce++;
+                if (this.currentMiningBlock.checkPoW()) {
+                    console.log("Block mined, hash: ", this.currentMiningBlock.hash());
+                    this.blockchain.addBlock(this.currentMiningBlock);
+                    this.broadcastBlock(this.currentMiningBlock);
+                    this.currentMiningBlock = null;
+                    break;
+                }
+            }
+            if (this.mining) setImmediate(mineStep);
+        };
+        mineStep();
+    }
+
+    stopMining() {
+        if (this.mining) {
+            console.log("Stop mining");
+            this.mining = false;
+            this.currentMiningBlock = null;
+        }
+    }
 }
 
 export default Node;

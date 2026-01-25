@@ -7,7 +7,11 @@ import { createCoinbaseTx, isCoinbaseInput } from "../transaction/coinbase.js";
 export class Blockchain {
     constructor({ bits = 0x1effffff, blockReward = 3 } = {}) {
         this.bits = bits;
-        this.chain = [];
+        // this.chain = [];
+        this.blocksByHash = new Map();  // graf bloków
+        this.heightByHash = new Map();  // każdy blok zna swoją wyokość
+        this.tip = null;    // hash czubka
+        this.orphans = new Map();   // przechowuje bloki które przyszły za wcześnie
         this.createFirstBlock();
         this.blockReward = blockReward;
     }
@@ -24,18 +28,38 @@ export class Blockchain {
         })
 
         block.mine();
-        this.chain.push(block);
+        // this.chain.push(block);
+        const hash = block.hash();
+        this.blocksByHash.set(hash, block);
+        this.heightByHash.set(hash, 0);
+        this.tip = hash;
     }
 
-    getLastBlock() {
-        const lastBlockIndex = this.chain.length - 1;
-        return this.chain[lastBlockIndex];
+    // getLastBlock() {
+    //     const lastBlockIndex = this.chain.length - 1;
+    //     return this.chain[lastBlockIndex];
+    // }
+    getTipBlock() {
+        return this.blocksByHash.get(this.tip);
+    }
+
+    getActiveChain() {
+        const chain = [];
+        let tip = this.tip;
+        while (tip) {
+            const block = this.blocksByHash.get(tip);
+            chain.push(block);
+            if (block.prevBlock === "00".repeat(32)) tip = null;
+            else tip = block.prevBlock;
+        }
+
+        return chain.reverse();
     }
 
     // Budujemy UTXO na podstawie całego łańcucha (Unspent transaction Output)
     getUTXO() {
         const utxo = new Map();
-        for (const block of this.chain) {
+        for (const block of this.getActiveChain()) {
             if (block.transactions.length === 0) continue;
 
             for (const tx of block.transactions) {
@@ -109,8 +133,7 @@ export class Blockchain {
     }
 
     validateBlock(block) {
-        const lastBlock = this.getLastBlock();
-        if (block.prevBlock !== lastBlock.hash()) {
+        if (!this.blocksByHash.has(block.prevBlock)) {
             console.error("Previous block is not match.");
             return false;
         }
@@ -125,24 +148,50 @@ export class Blockchain {
 
     // dodanie sprawdzanie transakcji, coinbase, merkleroot
     addBlock(block) {
+        const hash = block.hash();
+        const prev = block.prevBlock;
+
+        // orphan
+        if (!this.blocksByHash.has(prev)) {
+            if (!this.orphans.has(prev)) {
+                this.orphans.set(prev, []);
+            }
+            this.orphans.get(prev).push(block);
+            console.log("Orphan block received (hash: ", hash, ")");
+            return false;
+        }
+
         if (!this.validateBlock(block)) {
             return false;
         }
-        else {
-            if (block.transactions.length === 0) {
-                console.error("Block has no transactions");
-                return false;
-            }
+        if (block.transactions && block.transactions.length > 0) {
             const coinbase = block.transactions[0];
             if (!(coinbase.inputs.length === 1 && isCoinbaseInput(coinbase.inputs[0]))) {
                 console.error("First transaction is not coinbase")
                 return false;
             }
-            const merkle = merkleRoot(block.transactions);
-            if (merkle !== block.merkleRoot) {
-                console.error("Merkle root is not okay");
+            // sprawdzenie wiele coinbasów
+            for (let i = 1; i < block.transactions.length; i++) {
+                if (block.transactions[i].inputs.some(isCoinbaseInput)) {
+                    console.error("Multiple coinbase transactions detected");
+                    return false;
+                }
+            }
+            // sprawdzenie rewarda
+            let reward = 0;
+            for (const out of coinbase.outputs) {
+                if (out.amount <= 0) {
+                    console.error("Invalid coinbase output amount");
+                    return false;
+                }
+                reward += out.amount;
+            }
+
+            if (reward > this.blockReward) {
+                console.error("Coinbase reward too high");
                 return false;
             }
+
             for (let i = 1; i < block.transactions.length; i++) {
                 if (!this.validateTransaction(block.transactions[i])) {
                     console.error("Invalid transaction in block")
@@ -150,14 +199,39 @@ export class Blockchain {
                 }
             }
 
-            this.chain.push(block);
-            console.log("Block has been added!");
-            return true;
+            const merkle = merkleRoot(block.transactions);
+            if (merkle !== block.merkleRoot) {
+                console.error("Merkle root is not okay");
+                return false;
+            }
         }
+        // save block
+        const height = this.heightByHash.get(prev) + 1;
+        this.blocksByHash.set(hash, block);
+        this.heightByHash.set(hash, height);
+
+        // the best tip = the longest chain 
+        if (height > this.heightByHash.get(this.tip)) {
+            this.tip = hash;
+            console.log("New tip selected (hash: ", hash, ", height: ", height, ")");
+        }
+        
+        // try to unlock orphans
+        if (this.orphans.has(hash)) {
+            for (const orphan of this.orphans.get(hash)) {
+                // rekurencja
+                this.addBlock(orphan);
+            }
+            this.orphans.delete(hash);
+        }
+
+        console.log("Block has been added!")
+        return true;
+
     }
 
     mineNextBlock(minerAddress, transactions=[]) {
-        const lastBlock = this.getLastBlock();
+        const parent = this.getTipBlock();
         const coinbaseTx = createCoinbaseTx(minerAddress, this.blockReward);
         const txs = [coinbaseTx];
         for (const tx of transactions) {
@@ -166,7 +240,7 @@ export class Blockchain {
         const merkle = merkleRoot(txs)
         const newBlock = new Block ({
             version: 1,
-            prevBlock: lastBlock.hash(),
+            prevBlock: parent.hash(),
             merkleRoot: merkle,
             timestamp: Math.floor(Date.now() / 1000),
             bits: this.bits,
@@ -179,4 +253,30 @@ export class Blockchain {
 
         return newBlock;
     }
+    
+    createCandidateBlock(minerAddress, mempool = []) {
+        const last = this.getTipBlock();
+        const coinbase = createCoinbaseTx(minerAddress, this.blockReward);
+        const txs = [coinbase, ...mempool];
+        const merkle = merkleRoot(txs);
+
+        return new Block({
+            version: 1,
+            prevBlock: last.hash(),
+            merkleRoot: merkle,
+            timestamp: Math.floor(Date.now() / 1000),
+            bits: this.bits,
+            nonce: 0,
+            transactions: txs,
+        });
+    }
+
+    getHeight() {
+        return this.heightByHash.get(this.tip);
+    }
+
+    getTipBlock() {
+        return this.blocksByHash.get(this.tip);
+    }
+
 }
